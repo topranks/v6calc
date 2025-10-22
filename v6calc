@@ -1,0 +1,50 @@
+#!/usr/bin/python3
+
+import argparse
+import ipaddress
+from num2words import num2words
+import sys
+
+def main():
+    """Prints out details of IPv6 subnet from address/network"""
+    parser = argparse.ArgumentParser()
+    parser.add_argument('input_ip', help='description of your input_ipiable')
+    args = parser.parse_args()
+    
+    try:
+        v6_net = ipaddress.ip_network(args.input_ip) 
+        v6_int = v6_net[0]
+    except ValueError:
+        try:
+            v6_int = ipaddress.ip_interface(args.input_ip)
+            v6_net = v6_int.network
+        except Exception as e:
+            print(f"Cannot parse {args.input_ip} - make sure it is an IPv6 with prefix - {e}") 
+
+    # Get the closest "large number" to use for the text description of network size
+    num_digits = len(str(v6_net.num_addresses))
+    mod_three = num_digits % 3
+    if mod_three == 0:
+        pfx = str(v6_net.num_addresses)[0:3]
+        num_zeros = num_digits - 3
+    else:
+        pfx = str(v6_net.num_addresses)[0:mod_three]
+        num_zeros = num_digits - mod_three
+    close_bignum = int(pfx + ("0" * num_zeros))
+
+    print(f"Address:    {v6_int}")
+    print(f"Network:    {v6_net}")
+    print(f"Broadcast:  {v6_net[-1]}")
+    print(f"Num Addrs:  Over {num2words(close_bignum)} ({v6_net.num_addresses:,})")
+
+    if v6_net.prefixlen < 64:
+        netsize = 64
+        while netsize > v6_net.prefixlen:
+            # Number of nets is 2^(child_prefixlen - parent_prefixlen)
+            num_child_nets = 2 ** (netsize - v6_net.prefixlen)
+            print(f"{f'Num /{netsize}:':<11} {num_child_nets:,}")
+            netsize = netsize - 4
+    print()
+
+if __name__=="__main__":
+    main()
