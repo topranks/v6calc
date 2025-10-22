@@ -3,6 +3,7 @@
 import argparse
 import ipaddress
 from num2words import num2words
+from math import log2
 import sys
 
 def main():
@@ -31,11 +32,12 @@ def main():
         pfx = str(v6_net.num_addresses)[0:mod_three]
         num_zeros = num_digits - mod_three
     close_bignum = int(pfx + ("0" * num_zeros))
+    over = "" if close_bignum == v6_net.num_addresses else "Over "
 
     print(f"Address:    {v6_int}")
     print(f"Network:    {v6_net}")
     print(f"Broadcast:  {v6_net[-1]}")
-    print(f"Num Addrs:  Over {num2words(close_bignum)} ({v6_net.num_addresses:,})")
+    print(f"Num Addrs:  {over}{num2words(close_bignum)} (2^{int(log2(v6_net.num_addresses))}) [{v6_net.num_addresses:,}]")
 
     if v6_net.prefixlen < 64:
         netsize = 64
