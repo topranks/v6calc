@@ -22,31 +22,49 @@ def main():
         except Exception as e:
             print(f"Cannot parse {args.input_ip} - make sure it is an IPv6 with prefix - {e}") 
 
-    # Get the closest "large number" to use for the text description of network size
-    num_digits = len(str(v6_net.num_addresses))
-    mod_three = num_digits % 3
-    if mod_three == 0:
-        pfx = str(v6_net.num_addresses)[0:3]
-        num_zeros = num_digits - 3
-    else:
-        pfx = str(v6_net.num_addresses)[0:mod_three]
-        num_zeros = num_digits - mod_three
-    close_bignum = int(pfx + ("0" * num_zeros))
-    over = "" if close_bignum == v6_net.num_addresses else "Over "
-
     print(f"Address:    {v6_int}")
     print(f"Network:    {v6_net}")
-    print(f"Broadcast:  {v6_net[-1]}")
-    print(f"Num Addrs:  {over}{num2words(close_bignum)} (2^{int(log2(v6_net.num_addresses))}) [{v6_net.num_addresses:,}]")
+    print(f"Last Addr:  {v6_net[-1]}")
+    print()
+
+    # tables where we store output for later
+    num_table = [get_text_labels(v6_net.num_addresses, "Num Addrs:")]
+    size_table = []
 
     if v6_net.prefixlen < 64:
         netsize = 64
         while netsize > v6_net.prefixlen:
             # Number of nets is 2^(child_prefixlen - parent_prefixlen)
             num_child_nets = 2 ** (netsize - v6_net.prefixlen)
-            print(f"{f'Num /{netsize}:':<11} {num_child_nets:,}")
+            size_table.append(get_text_labels(num_child_nets, f"Num /{netsize}:"))
             netsize = netsize - 4
+
+    # Get width of longest number description
+    width = 0
+    for entry in size_table + num_table:
+        if len(entry['text_number']) > width:
+            width = len(entry['text_number']) + 2
+
+    for table in (num_table, size_table):
+        for entry in table:
+            text_number = f"{entry['text_number']:<{width}}"
+            print(f"{entry['prefix']:<11} {text_number} {entry['log2']:<7} {entry['number']}")
+        print()
+
     print()
+
+
+def get_text_labels(number: int, prefix: str):
+    """Returns the text version and log2 equivalent the number"""
+    labels = {'number': f"{number:,}", 'prefix': prefix}
+    if number < 99999:
+        labels['text_number'] = f"{number:,}"
+    significant_digits = f"{number:,}".split(",")[0]
+    # Pad the significant digits with zero to the same length to get the "closest" big number
+    closest_num = significant_digits + ((len(str(number))) - len(significant_digits)) * "0"
+    labels['text_number'] = num2words(closest_num)
+    labels['log2'] = f"(2^{int(log2(number))})"
+    return labels
 
 if __name__=="__main__":
     main()
