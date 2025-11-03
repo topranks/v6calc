@@ -9,23 +9,28 @@ import sys
 def main():
     """Prints out details of IPv6 subnet from address/network"""
     parser = argparse.ArgumentParser()
-    parser.add_argument('input_ip', help='description of your input_ipiable')
+    parser.add_argument('-c', '--count', help='If specified output will also show count of IPs and networks in the range', action='store_true')
+    parser.add_argument('ip_with_prefixlen', help='IPv6 address including prefix length, i.e. 2000::1/3')
     args = parser.parse_args()
     
     try:
-        v6_net = ipaddress.ip_network(args.input_ip) 
+        v6_net = ipaddress.ip_network(args.ip_with_prefixlen)
         v6_int = v6_net[0]
     except ValueError:
         try:
-            v6_int = ipaddress.ip_interface(args.input_ip)
+            v6_int = ipaddress.ip_interface(args.ip_with_prefixlen)
             v6_net = v6_int.network
         except Exception as e:
-            print(f"Cannot parse {args.input_ip} - make sure it is an IPv6 with prefix - {e}") 
+            print(f"Cannot parse {args.input_ip} - make sure it is an IPv6 with prefix - {e}")
+            sys.exit(1)
 
     print(f"Address:    {v6_int}")
     print(f"Network:    {v6_net}")
     print(f"Last Addr:  {v6_net[-1]}")
     print()
+
+    if not args.count:
+        sys.exit(0)
 
     # tables where we store output for later
     num_table = [get_text_labels(v6_net.num_addresses, "Num Addrs:")]
@@ -50,8 +55,6 @@ def main():
             text_number = f"{entry['text_number']:<{width}}"
             print(f"{entry['prefix']:<11} {text_number} {entry['log2']:<7} {entry['number']}")
         print()
-
-    print()
 
 
 def get_text_labels(number: int, prefix: str):
